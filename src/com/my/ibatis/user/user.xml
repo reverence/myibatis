@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<sqlMap namespace="user" >
+    <resultMap id="userMap" class="com.my.ibatis.UserDTO" >
+        <result column="id" property="id" jdbcType="DECIMAL" />
+        <result column="user_name" property="userName" jdbcType="VARCHAR" />
+        <result column="age" property="age" jdbcType="DECIMAL" />
+        <result column="sex" property="sex" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <select id="findById" resultMap="userMap" parameterClass="int" >
+        select * from users where id=#id#
+    </select>
+</sqlMap>
