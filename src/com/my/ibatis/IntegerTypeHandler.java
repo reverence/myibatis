@@ -1,6 +1,8 @@
 package com.my.ibatis;
 
+import java.lang.reflect.Method;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Map;
 
@@ -19,4 +21,20 @@ public class IntegerTypeHandler implements TypeHandler {
     public Class getParameterClass(String name) {
         return Integer.class;
     }
+
+	@Override
+	public void setValueForObject(ResultSet resultSet, Object object,
+			String columnName, String propertyName) {
+		try {
+			int v = resultSet.getInt(columnName);
+			String methodName="set"+propertyName.substring(0,1).toUpperCase()+propertyName.substring(1);
+			Method method = object.getClass().getDeclaredMethod(methodName, int.class);
+			method.invoke(object, v);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+		
+		
+		
+	}
 }
