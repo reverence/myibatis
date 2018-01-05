@@ -1,8 +1,6 @@
  package com.my.ibatis;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -100,13 +98,17 @@ public class SqlMapConfig {
     static class ResultMap{
         private String id;
         private String classz;
-        private List<Result>resultList;
+        private Map<String, String> propertyMap;
 
-        public List<Result> getResultList() {
-            return resultList;
-        }
+        public Map<String, String> getPropertyMap() {
+			return propertyMap;
+		}
 
-        public String getClassz() {
+		public void setPropertyMap(Map<String, String> propertyMap) {
+			this.propertyMap = propertyMap;
+		}
+
+		public String getClassz() {
             return classz;
         }
 
@@ -120,10 +122,6 @@ public class SqlMapConfig {
 
         public void setId(String id) {
             this.id = id;
-        }
-
-        public void setResultList(List<Result> resultList) {
-            this.resultList = resultList;
         }
     }
     static class Result{
