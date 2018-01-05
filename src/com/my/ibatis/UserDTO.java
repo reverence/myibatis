@@ -6,15 +6,15 @@ package com.my.ibatis;
 
 public class UserDTO {
 
-    private Long id;
+    private int id;
     private String sex;
     private int age;
     private String userName;
 
-    public Long getId() {
+    public int getId() {
         return id;
     }
-    public void setId(Long id) {
+    public void setId(int id) {
         this.id = id;
     }
     public String getSex() {
@@ -34,5 +34,11 @@ public class UserDTO {
     }
     public void setUserName(String userName) {
         this.userName = userName;
+    }
+    
+    @Override
+    public String toString() {
+    	// TODO Auto-generated method stub
+    	return "id:"+id+",userName:"+userName+",age:"+age+",sex:"+sex;
     }
 }
