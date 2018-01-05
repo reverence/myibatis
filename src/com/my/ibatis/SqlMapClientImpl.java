@@ -9,7 +9,9 @@ import java.util.List;
 public class SqlMapClientImpl implements SqlMapClient {
 
     private SqlMapConfig sqlMapConfig;
-
+    
+    private static ThreadLocal<SqlMapSession>localSqlMapSession = new ThreadLocal<>();
+    
     public SqlMapClientImpl(String sqlMapConfigFile){
         /**
          * parse xml file
@@ -30,39 +32,19 @@ public class SqlMapClientImpl implements SqlMapClient {
 
     @Override
     public Object selectForObject(String sql, Object parameterObject) throws SQLException {
-        SqlMapConfig.SqlMapInfo sqlMapInfo = sqlMapConfig.getMappedSql().get(sql);
-        SqlMapConfig.Sql sql1 = sqlMapInfo.getSql();
-        SqlMapConfig.ResultMap resultMap = sql1.getResultMap();
-        String sqlString = sql1.getSqlString();
-
-        //获取conncetion
-        Connection connection = null;
-        try{
-           connection = ConnectioProvider.getConnection();
-        }catch (Exception e){
-            throw new RuntimeException(e);
-        }
-        PreparedStatement ps = connection.prepareStatement(sqlString);
-        if(parameterObject.getClass() == sql1.getParameterClass()){
-            TypeHandlerFactory.getTypeHandler(sql1.getParameterClass()).setParamters(ps,sql1.getParameterIndexMap(),parameterObject);
-            ResultSet resultSet = ps.executeQuery();
-            ResultSetMetaData rsmd = resultSet.getMetaData();
-            int columnNum = rsmd.getColumnCount();
-            while(resultSet.next()){
-                rsmd = resultSet.getMetaData();
-                for(int i=1;i<=columnNum;i++){
-                    String name = rsmd.getColumnName(i);
-
-                }
-            }
-        }else{
-            throw new RuntimeException("wrong paramters");
-        }
-
-        return null;
+    	
+    	return getLocalSqlMapSession().selectForObject(sql,parameterObject);
     }
 
-    @Override
+    private SqlMapSession getLocalSqlMapSession() {
+		if(null == localSqlMapSession.get()){
+			SqlMapSession session = open();
+			localSqlMapSession.set(session);
+		}
+		return localSqlMapSession.get();
+	}
+
+	@Override
     public List<Object> selectForList(String sql, Object parameterObject) {
         // TODO Auto-generated method stub
         return null;
@@ -74,4 +56,9 @@ public class SqlMapClientImpl implements SqlMapClient {
         return 0;
     }
 
+	@Override
+	public SqlMapSession open() {
+		
+		return new SqlMapSessionImpl(sqlMapConfig);
+	}
 }
