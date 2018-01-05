@@ -1,16 +1,14 @@
 package com.my.ibatis;
 
-import com.sun.org.apache.regexp.internal.RE;
-import com.sun.tools.corba.se.idl.StringGen;
-import org.dom4j.Document;
-import org.dom4j.Element;
-import org.dom4j.io.SAXReader;
-
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.dom4j.Document;
+import org.dom4j.Element;
+import org.dom4j.io.SAXReader;
 
 /**
  * Created by tufei on 2018/1/1.
@@ -125,6 +123,8 @@ public class SqlMapConfigParser {
         String classz = element1.attributeValue("class");
         resultMap.setId(id);
         resultMap.setClassz(classz);
+        
+        Map<String, String> propertyMap = new HashMap<>();
 
         List<Element> elementList = element1.elements("result");
         for(Element element : elementList){
@@ -132,14 +132,11 @@ public class SqlMapConfigParser {
             String column = element.attributeValue("column");
             String property = element.attributeValue("property");
             String jdbcType = element.attributeValue("jdbcType");
-            result.setColumn(column);
-            result.setJdbcType(jdbcType);
-            result.setProperty(property);
-            if(null == resultMap.getResultList()){
-                resultMap.setResultList(new ArrayList<SqlMapConfig.Result>());
-            }
-            resultMap.getResultList().add(result);
+            //统一大写
+            column = column.toUpperCase();
+            propertyMap.put(column, property);
         }
+        resultMap.setPropertyMap(propertyMap);
         return resultMap;
     }
 
