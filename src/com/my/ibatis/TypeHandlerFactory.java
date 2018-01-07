@@ -18,6 +18,10 @@ public class TypeHandlerFactory {
     }
 
     public static TypeHandler getTypeHandler(Object obj){
-        return handlerMap.get(obj);
+        TypeHandler handler =  handlerMap.get(obj);
+        if(null == handler){
+            handler = new DefaultTypeHandler();
+        }
+        return handler;
     }
 }
