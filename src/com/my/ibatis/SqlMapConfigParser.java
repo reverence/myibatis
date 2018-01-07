@@ -70,6 +70,7 @@ public class SqlMapConfigParser {
                         case "select":
                         case "update":
                         case "delete":
+                        case "insert":
                             SqlMapConfig.Sql sql = parseSql(element1);
                             sql.setSqlId(namespace+"."+sql.getSqlId());
                             if (config.getMappedSql().containsKey(sql.getSqlId())) {
@@ -103,9 +104,9 @@ public class SqlMapConfigParser {
         List<String>variables = new ArrayList<String>();
         int first = sqlString.indexOf("#");
         int next;
-        while(-1 != (next=sqlString.indexOf("#",first+1))){
+        while(-1 != first && -1 != (next=sqlString.indexOf("#",first+1))){
             variables.add(sqlString.substring(first+1,next));
-            first = next;
+            first = sqlString.indexOf("#",next+1);
         }
         Map<String,Integer> parameterIndex = new HashMap<>();
         for(int i=0;i<variables.size();i++){
