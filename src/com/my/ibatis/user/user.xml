@@ -11,4 +11,13 @@
     <select id="findById" resultMap="userMap" parameterClass="int" >
         select * from users where id=#id#
     </select>
+
+    <insert id="insert" resultMap="userMap" parameterClass="com.my.ibatis.UserDTO">
+        insert into users(id,user_name,age,sex)values(#id#,#userName#,#age#,#sex#)
+    </insert>
+
+    <update id="update" parameterClass="com.my.ibatis.UserDTO">
+        update users set id=#id#,user_name=#userName#,age=#age#,sex=#sex# where id=#id#
+    </update>
+
 </sqlMap>
