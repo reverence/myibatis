@@ -1,125 +1,157 @@
 package com.my.ibatis;
 
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 
-import com.my.ibatis.SqlMapConfig.ResultMap;
-import com.my.ibatis.SqlMapConfig.Sql;
-import com.my.ibatis.SqlMapConfig.SqlMapInfo;
-
 public class SqlMapSessionImpl implements SqlMapSession {
 	
-	private SqlMapConfig sqlMapConfig;
-	
-	private SqlMapExecutorDelegate sqlMapExecutorDelegate;
-	
-	private SessionScope sessionScope;
-	
-	public SqlMapSessionImpl(SqlMapConfig config){
-		this.sqlMapConfig = config;
-		this.sqlMapExecutorDelegate = new SqlMapExecutorDelegate();
-		this.sessionScope = new SessionScope();
+	private SqlMapClientImpl sqlMapClient;
+
+	private boolean closed;
+
+	private Transaction transaction;
+
+	private SqlExecutor sqlExecutor;
+
+	private boolean needRollback = false;
+
+	public SqlMapSessionImpl(SqlMapClientImpl client){
+		this.sqlMapClient = client;
+		this.sqlExecutor = new SqlExecutor(client.getSqlMapConfig());
 	}
 
 	@Override
-	public Object insert(String sql, Object object) {
-		// TODO Auto-generated method stub
-		return null;
+	public Object insert(String sqlId, Object object) throws SQLException {
+		Transaction transaction = getTransaction();
+		boolean autoCommit = (null == transaction ||transaction.getConnection().getAutoCommit());
+		try{
+			transaction = getCurrentTransaction(transaction,autoCommit);
+			Object object1 = sqlExecutor.executeInsert(sqlId,transaction,object);
+			autoCommitTransaction(transaction,autoCommit);
+			return object1;
+		}catch (Exception e){
+			if(!autoCommit){
+				needRollback = true;
+			}
+			throw new SQLException(e);
+		}finally {
+			autoEndTransaction(transaction,autoCommit);
+		}
+	}
+
+	private void autoEndTransaction(Transaction transaction, boolean autoCommit) {
+		if(autoCommit){
+			try{
+				if(!transaction.getConnection().isClosed()){
+					transaction.getConnection().close();
+				}
+			}catch (Exception e){
+				throw new RuntimeException(e);
+			}
+			this.close();
+		}
+
+	}
+
+	private void autoCommitTransaction(Transaction transaction, boolean autoCommit) throws Exception {
+
+	}
+
+	private Transaction getCurrentTransaction(Transaction transaction, boolean autoCommit) {
+		Transaction t = transaction;
+		if(autoCommit){
+			t = new TransactionImpl();
+		}
+		return t;
 	}
 
 	@Override
 	public Object selectForObject(String sqlId, Object parameterObject) throws SQLException {
-		
-		/*SqlMapInfo sqlMapInfo = sqlMapConfig.getMappedSql().get(sqlId);
-		Sql sql2 = sqlMapInfo.getSql();
-		Object resultObject = null;
-		try {
-			sqlMapExecutorDelegate.executeQueryForObject(sessionScope,sql2,parameterObject);
-			resultObject = buildResultObject(sessionScope,sql2);
-		} catch (Exception e) {
-			e.printStackTrace();
+		List list = selectForList(sqlId,parameterObject);
+		return list.get(0);
+	}
+
+	@Override
+	public List<Object> selectForList(String sqlId, Object parameterObject)throws SQLException {
+		Transaction transaction = getTransaction();
+		boolean autoCommit = (null == transaction ||transaction.getConnection().getAutoCommit());
+		try{
+			transaction = getCurrentTransaction(transaction,autoCommit);
+			List<Object> list = sqlExecutor.executeQuery(sqlId,transaction,parameterObject);
+			autoCommitTransaction(transaction,autoCommit);
+			return list;
+		}catch (Exception e){
+			if(!autoCommit){
+				needRollback = true;
+			}
 			throw new SQLException(e);
-		}finally{
-			cleanUpSessionScope(sessionScope);
-		}		
-		return resultObject;*/
-	}
-
-	private void cleanUpSessionScope(SessionScope sessionScope2) {
-		try {
-			if(null != sessionScope2.getResultSet()){
-				sessionScope2.getResultSet().close();
-			}
-			if(null != sessionScope2.getStatement()){
-				sessionScope2.getStatement().close();
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw new RuntimeException(e);
+		}finally {
+			autoEndTransaction(transaction,autoCommit);
 		}
-		
 	}
 
-	private Object buildResultObject(SessionScope sessionScope2, Sql sql2) throws Exception {
-		ResultSet resultSet = sessionScope2.getResultSet();
-		if(null != resultSet){
-			ResultSetMetaData rsmd = resultSet.getMetaData();
-			ResultMap resultMap = sql2.getResultMap();
-            int columnNum = rsmd.getColumnCount();
-            rsmd = resultSet.getMetaData();
-            String clsString = resultMap.getClassz();
-            Class cls = null;
-            Object object = null;
-            try {
-            	cls = Class.forName(clsString);
-            	object = cls.newInstance();
-			} catch (Exception e) {
-				e.printStackTrace();
-				throw new RuntimeException(e);
+	@Override
+	public int update(String sqlId, Object parameterObject) throws SQLException {
+		Transaction transaction = getTransaction();
+		boolean autoCommit = (null == transaction ||transaction.getConnection().getAutoCommit());
+		try{
+			transaction = getCurrentTransaction(transaction,autoCommit);
+			int c = sqlExecutor.executeUpdate(sqlId,transaction,parameterObject);
+			autoCommitTransaction(transaction,autoCommit);
+			return c;
+		}catch (Exception e){
+			if(!autoCommit){
+				needRollback = true;
 			}
-            for(int i=1;i<=columnNum;i++){
-                String name = rsmd.getColumnName(i);
-                String fieldName = resultMap.getPropertyMap().get(name.toUpperCase());
-                try {
-                	Class class1 = cls.getDeclaredField(fieldName).getType();
-                	TypeHandlerFactory.getTypeHandler(class1).setValueForObject(resultSet,object,name,fieldName);
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				}
-                
-            }
-            return object;
-        }
-		
-		return null;
-	}
-
-	@Override
-	public List<Object> selectForList(String sql, Object parameterObject) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public int update(String sql, Object parameterObject) {
-		// TODO Auto-generated method stub
-		return 0;
+			throw new SQLException(e);
+		}finally {
+			autoEndTransaction(transaction,autoCommit);
+		}
 	}
 
 	@Override
 	public void close() {
-		// TODO Auto-generated method stub
-
+		if(null != sqlMapClient){
+			sqlMapClient = null;
+		}
+		if(null != sqlExecutor){
+			sqlExecutor = null;
+		}
+		if(null != transaction){
+			transaction = null;
+		}
+		this.closed = true;
 	}
 
-	public SqlMapConfig getSqlMapConfig() {
-		return sqlMapConfig;
+	public boolean isClosed() {
+		return closed;
 	}
 
-	public void setSqlMapConfig(SqlMapConfig sqlMapConfig) {
-		this.sqlMapConfig = sqlMapConfig;
+	@Override
+	public void startTransaction() throws SQLException {
+		transaction = new TransactionImpl();
+		transaction.getConnection().setAutoCommit(false);
 	}
 
+	@Override
+	public void commitTransaction() throws SQLException {
+		transaction.getConnection().commit();
+	}
+
+	@Override
+	public void endTransaction() throws SQLException {
+		Connection connection = transaction.getConnection();
+		if(needRollback){
+			connection.rollback();
+		}
+		if(null != connection && !connection.isClosed()){
+			connection.close();
+		}
+		this.close();
+	}
+
+	public Transaction getTransaction() {
+		return transaction;
+	}
 }
