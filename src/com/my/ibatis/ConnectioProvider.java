@@ -12,7 +12,7 @@ public class ConnectioProvider {
         String url ="jdbc:postgresql://localhost:5432/dev";
         //myDB为数据库名
         String user="postgres";
-        String password="cz19890801";
+        String password="xxxxxx";
         Connection conn= DriverManager.getConnection(url,user,password);
         return conn;
     }
