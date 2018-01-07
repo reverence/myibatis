@@ -25,9 +25,8 @@ public class SqlMapClientImpl implements SqlMapClient {
     }
 
     @Override
-    public Object insert(String sql, Object object) {
-        // TODO Auto-generated method stub
-        return null;
+    public Object insert(String sql, Object object) throws SQLException {
+        return getLocalSqlMapSession().insert(sql,object);
     }
 
     @Override
@@ -37,28 +36,46 @@ public class SqlMapClientImpl implements SqlMapClient {
     }
 
     private SqlMapSession getLocalSqlMapSession() {
-		if(null == localSqlMapSession.get()){
-			SqlMapSession session = open();
-			localSqlMapSession.set(session);
+        SqlMapSessionImpl sqlMapSession = (SqlMapSessionImpl) localSqlMapSession.get();
+		if(null == sqlMapSession || sqlMapSession.isClosed() ){
+			sqlMapSession = (SqlMapSessionImpl) open();
+			localSqlMapSession.set(sqlMapSession);
 		}
 		return localSqlMapSession.get();
 	}
 
 	@Override
-    public List<Object> selectForList(String sql, Object parameterObject) {
-        // TODO Auto-generated method stub
-        return null;
+    public List<Object> selectForList(String sql, Object parameterObject) throws SQLException {
+        return getLocalSqlMapSession().selectForList(sql,parameterObject);
     }
 
     @Override
-    public int update(String sql, Object parameterObject) {
-        // TODO Auto-generated method stub
-        return 0;
+    public int update(String sql, Object parameterObject) throws SQLException {
+        return getLocalSqlMapSession().update(sql,parameterObject);
     }
 
 	@Override
 	public SqlMapSession open() {
 		
-		return new SqlMapSessionImpl(sqlMapConfig);
+		return new SqlMapSessionImpl(this);
 	}
+
+    public SqlMapConfig getSqlMapConfig() {
+        return sqlMapConfig;
+    }
+
+    @Override
+    public void startTransaction() throws SQLException {
+        getLocalSqlMapSession().startTransaction();
+    }
+
+    @Override
+    public void commitTransaction() throws SQLException {
+        getLocalSqlMapSession().commitTransaction();
+    }
+
+    @Override
+    public void endTransaction() throws SQLException {
+        getLocalSqlMapSession().endTransaction();
+    }
 }
